@@ -1,0 +1,440 @@
+#include <iostream>
+#include <iomanip>
+#include <complex>
+#include <vector>
+#include <cmath>
+#include <fstream>
+#include <string>
+#define complex std::complex<double>
+using namespace std;
+class cacheMem {
+public:
+	uint32_t cacheSize;
+	uint32_t burstLength[4] = { 1, 2, 4, 8 };
+	uint32_t waysofAssociativity[4] = { 1, 2, 4, 8 };
+	uint8_t wrStrategy, replaceStrategy;
+	uint32_t lines;
+	uint32_t BL, N;
+	uint32_t i, j, k, var;
+	uint32_t blockOffset, lineNumber, tagNumber;
+	uint8_t blockOffset_bits, lineNumber_bits, tagNumber_bits;
+	uint8_t RR;
+	bool valid = false;
+	/*std::vector< vector<uint32_t> > Tag;
+	  std::vector< vector<uint32_t> > D;
+	   std::vector< vector<uint32_t> > LRU;
+	    std::vector< vector<uint32_t> > V;*/
+		/*std::vector< uint32_t > Tag;
+		  std::vector< uint32_t > D;
+		   std::vector< uint32_t > LRU;
+		    std::vector< uint32_t > V;*/
+	uint32_t Tag[65536][8];
+	uint32_t D[65536][8];
+	uint32_t LRU[65536][8];
+	uint32_t V[65536][8];
+	struct counter {
+		uint32_t rdCache;
+		uint32_t wrCache;
+		uint32_t rdMem;
+		uint32_t wrMem;
+		uint32_t rdLine;
+		uint32_t wrLine;
+		uint32_t rdlineHit;
+		uint32_t rdlineDirty;
+		uint32_t rdlineReplace;
+		uint32_t wrlineHit;
+		uint32_t wrlineDirty;
+		uint32_t wrlineReplace;
+		uint32_t flushData;
+		uint32_t firstWrite;
+		uint32_t wrlineHit_wta;
+		uint32_t wrlineHit_wtna;
+		uint32_t rdMem_wta;
+		uint32_t rdMem_wtna;
+		uint32_t wrMem_wta;
+		uint32_t wrMem_wtna;
+	} count;
+	cacheMem()
+	{
+		cacheSize = 262144;
+		cout << "The cache size in 256 KB \n";
+	}
+	void clearCache()
+	{
+		uint32_t i7, j7;
+		count.rdCache = 0;
+		count.wrCache = 0;
+		count.rdMem = 0;
+		count.wrMem = 0;
+		count.rdLine = 0;
+		count.wrLine = 0;
+		count.rdlineHit = 0;
+		count.rdlineDirty = 0;
+		count.rdlineReplace = 0;
+		count.wrlineHit = 0;
+		count.wrlineDirty = 0;
+		count.wrlineReplace = 0;
+		count.flushData = 0;
+		count.firstWrite = 0;
+		count.wrlineHit_wta = 0;
+		count.wrlineHit_wtna = 0;
+		count.rdMem_wta = 0;
+		count.rdMem_wtna = 0;
+		count.wrMem_wta = 0;
+		count.wrMem_wtna = 0;
+		for (i7 = 0; i7 < 65536; i7++)
+		{
+			for (j7 = 0; j7 < 8; j7++)
+			{
+				Tag[i7][j7] = 0;
+				D[i7][j7] = 0;
+				V[i7][j7] = 0;
+				LRU[i7][j7] = j7;
+			}
+		}
+	}
+	void flushDirty()
+	{
+		uint32_t row, column;
+		if (wrStrategy == 0) {
+			for (row = 0; row < lines; row++)
+			{
+				for (column = 0; column < N; column++)
+				{
+					/*if (D[row][column])
+						      {*/
+					count.flushData++;
+					count.wrMem++;
+					//}
+				}
+			}
+		}
+	}
+	void getParameters(uint32_t address)
+	{
+		uint8_t i;
+		uint32_t mask = 0;
+		/*cout << "Address Alloc: " << address;
+		    cout << "\n\n";*/
+		blockOffset = 0;
+		lineNumber = 0;
+		tagNumber = 0;
+		blockOffset_bits = log2(BL * 4);
+		lineNumber_bits = log2(lines);
+		tagNumber_bits = 32 - (blockOffset_bits + lineNumber_bits);
+		mask = (pow(2, blockOffset_bits) - 1);
+		blockOffset = address & mask;
+		address = address >> blockOffset_bits;
+		//cout << "offset: "<< blockOffset;
+		//cout << "\n\n";
+		mask = (pow(2, lineNumber_bits) - 1);
+		lineNumber = address & mask;
+		address = address >> lineNumber_bits;
+		//cout << "Line: " << lineNumber;
+		//cout << "\n\n";
+		mask = (pow(2, tagNumber_bits) - 1);
+		tagNumber = address & mask;
+		// cout << "TAG: " << tagNumber;
+		//cout << "\n\n";
+	}
+	void readMem(void *addr, uint32_t size)
+	{
+		count.rdCache++;
+		int last_line = -1;
+		uint8_t i_2;
+		uint32_t address = (uint32_t)addr;
+		for (i_2 = 0; i_2 < size; i_2++)
+		{
+			getParameters(address);
+			address++;
+		}
+	}
+	int isValid(uint32_t wr_line)
+	{
+		uint32_t i7;
+		valid = false;
+		for (i7 = 0; i7 < N; i7++)
+		{
+			if (replaceStrategy == 0)
+			{
+				if ((!V[wr_line][i7]))
+				{
+					if (LRU[wr_line][i7] == (N - 1))
+					{
+						valid = true;
+						return i7;
+						break;
+					}
+				}
+			}
+		}
+		if (replaceStrategy == 1)
+		{
+			if ((!V[wr_line][RR]))
+			{
+				valid = true;
+				return RR;
+			}
+		}
+	}
+	void writeLine(uint32_t wr_tag, uint32_t wr_line)
+	{
+
+		count.wrLine++;
+		uint32_t i6, validPosition, var;
+		bool wr_miss = true;
+		for (i6 = 0; i6 < N; i6++)
+		{
+			if (Tag[wr_line][i6] == wr_tag)
+			{
+				if (V[wr_line][i6])
+				{
+					wr_miss = false;
+					break;
+				}
+			}
+		}
+		if (wr_miss)		//if miss
+		{
+			if (wrStrategy == 2)
+			{
+				for (i6 = 0; i6 < BL; i6++)
+					count.wrMem++;
+			}
+			if (wrStrategy == 0 || wrStrategy == 1)
+			{
+				validPosition = isValid(wr_line);
+				if (valid)
+				{
+					count.rdMem++;
+					count.wrlineReplace++;
+					V[wr_line][validPosition] = 1;
+					if (wrStrategy == 0)
+						D[wr_line][validPosition] = 1;
+					else
+						count.wrMem++;
+					if (replaceStrategy == 0)
+					{
+						for (i6 = 0; i6 < N; i6++)
+						{
+							LRU[wr_line][i6] = (((LRU[wr_line][i6]) + 1) % N);
+						}
+					}
+					else if (replaceStrategy == 1)
+					{
+						RR = ((RR + 1) % N);
+					}
+					Tag[wr_line][validPosition] = wr_tag;
+				}
+				else
+				{
+					if (replaceStrategy == 0)
+					{
+						for (i6 = 0; i6 < N; i6++)
+						{
+							if (LRU[wr_line][i6] == (N - 1))
+							{
+								if (D[wr_line][i6])
+								{
+									count.wrlineDirty++;
+									D[wr_line][i6] = 0;
+								}
+								count.wrlineReplace++;
+								V[wr_line][i6] = 1;
+								Tag[wr_line][i6] = wr_tag;
+								if (wrStrategy == 0)
+									D[wr_line][i6] = 1;
+								else
+								{
+									for (i6 = 0; i6 < BL; i6++)
+									{
+										count.wrMem++;
+									}
+								}
+								for (i6 = 0; i6 < N; i6++)
+								{
+									LRU[wr_line][i6] = (((LRU[wr_line][i6]) + 1) % N);
+								}
+								break;
+							}
+						}
+					}
+					else
+					{
+						if (D[wr_line][RR])
+						{
+							count.wrlineDirty++;
+							if (wrStrategy == 0)
+								count.wrMem++;
+							D[wr_line][RR] = 0;
+						}
+						count.wrlineReplace++;
+						V[wr_line][RR] = 1;
+						Tag[wr_line][RR] = wr_tag;
+						if (wrStrategy == 0)
+							D[wr_line][i6] = 1;
+						else
+						{
+							for (i6 = 0; i6 < BL; i6++)
+							{
+								count.wrMem++;
+							}
+						}
+						RR = ((RR + 1) % N);
+					}
+				}
+			}
+		}
+		else				//if hit
+		{
+			if (wrStrategy == 0 || wrStrategy == 1 || wrStrategy == 2)
+			{
+				count.wrlineHit++;
+			}
+		if (wrStrategy == 0)
+		{
+			D[wr_line][i6] = 1;
+		}
+		if (wrStrategy == 1 || wrStrategy == 2)
+		{
+			for (i6 = 0; i6 < BL; i6++)
+			{
+				count.wrMem++;
+			}
+		}
+		if (replaceStrategy == 0)
+		{
+			for (i6 = 0; i6 < N; i6++)
+			{
+				LRU[wr_line][i6] = (((LRU[wr_line][i6]) + 1) % N);
+			}
+		}
+		else
+		{
+			RR = ((RR + 1) % N);
+		}
+		}
+	}
+	void writeMem(void *addr, uint32_t size)
+	{
+		int i5;
+		count.wrCache++;
+		uint32_t w_last_line = -1;
+		uint32_t addr32 = (uint32_t)addr;
+		for (i5 = 0; i5 < size; i5++)
+		{
+			getParameters(addr32);
+			addr32++;
+			if (lineNumber != w_last_line) {
+				w_last_line = lineNumber;
+				writeLine(tagNumber, lineNumber);
+			}
+		}
+	}
+	void Start()
+	{
+		clearCache();
+		uint32_t i_1 = 0;
+		double data[65536];
+		uint32_t points = 65536;
+		//writeMem(&i_1, sizeof(i_1)); // i = 0
+		//readMem(&i_1, sizeof(i_1)); // i < lines
+		//getParameters(&i_loop);
+		for (i_1 = 0; i_1 < points; i_1++)
+		{
+			//readMem(&i_1, sizeof(i_1)); // read the value of i
+			writeMem(&data[i_1], sizeof(data[i_1])); // write @data[i]
+			data[i_1] = 0;
+			//readMem(&i_1, sizeof(i_1)); // read the value of i
+			//writeMem(&i_1, sizeof(i_1)); // write i+1
+			//readMem(&i, sizeof(i));  // i < lines
+		}
+		flushDirty();
+	}
+	void Init()
+	{
+		for (i = 0; i < 2; i++)     //LRU or RR
+		{
+			replaceStrategy = i;
+			for (j = 0; j < 3; j++)			//WTA or WTA or WTNA
+			{
+				wrStrategy = j;
+				for (k = 0; k < 4; k++)			// for associativity 
+				{
+					N = waysofAssociativity[k];
+					for (var = 0; var < 4; var++)    // for the burstlengths
+					{
+						BL = burstLength[var];
+						lines = (cacheSize / ((BL * 4) * N));
+
+						Start();
+						if (replaceStrategy == 0)
+						{
+							cout << "BL = " << BL << " N = " << N << "  replaceStrategy -- LRU  " << endl << endl;
+							if (wrStrategy == 0)
+							{
+								cout << "Write Back Strategy" << endl;
+							}
+							else if (wrStrategy == 1)
+							{
+								cout << "Write throught Allocate Strategy" << endl;
+							}
+							else if (wrStrategy == 2)
+							{
+								cout << "Write throught Non- Allocate" << endl;
+							}
+							//cout << "Read Cache Counter: " << count.rdCache << endl;
+							cout << "Write Cache Counter: " << count.wrCache << endl;
+							cout << "Write Line Counter: " << count.wrLine << endl;
+							cout << "Read Memory Counter: " << count.rdMem << endl;
+							//cout << "Read Memory Counter (WTA): " << count.rdMem_wta << endl;
+							//cout << "First Write Counter: " << count.firstWrite << endl;
+							cout << "Write Memory Counter: " << count.wrMem << endl;
+							//cout << "Write Memory Counter (WTA): " << count.wrMem_wta << endl;
+							//cout << "Write Memory Counter (WTNA): " << count.wrMem_wtna << endl;
+							cout << "Write line Hit Counter: " << count.wrlineHit << endl;
+							cout << "Write line Dirty Counter: " << count.wrlineDirty << endl;
+							cout << "Write line Replace Counter: " << count.wrlineReplace << endl;
+							cout << "Flush Dirty Counter: " << count.flushData << endl;
+						}
+						else if (replaceStrategy == 1)
+						{
+							cout << "BL = " << BL << " N = " << N << "  replaceStrategy -- RR  " << endl << endl;
+							//cout << "Read Cache Counter: " << count.rdCache << endl;
+							if (wrStrategy == 0)
+							{
+								cout << "Write Back Strategy" << endl;
+							}
+							else if (wrStrategy == 1)
+							{
+								cout << "Write throught Allocate Strategy" << endl;
+							}
+							else if (wrStrategy == 2)
+							{
+								cout << "Write throught Non- Allocate" << endl;
+							}
+							cout << "Write Cache Counter: " << count.wrCache << endl;
+							cout << "Write Line Counter: " << count.wrLine << endl;
+							cout << "Read Memory Counter: " << count.rdMem << endl;
+							//cout << "Read Memory Counter (WTA): " << count.rdMem_wta << endl;
+							//cout << "First Write Counter: " << count.firstWrite << endl;
+							cout << "Write Memory Counter: " << count.wrMem << endl;
+							//cout << "Write Memory Counter (WTA): " << count.wrMem_wta << endl;
+							//cout << "Write Memory Counter (WTNA): " << count.wrMem_wtna << endl;
+							cout << "Write line Hit Counter: " << count.wrlineHit << endl;
+							cout << "Write line Dirty Counter: " << count.wrlineDirty << endl;
+							cout << "Write line Replace Counter: " << count.wrlineReplace << endl;
+							cout << "Flush Dirty Counter: " << count.flushData << endl;
+						}
+					}
+				}
+			}
+		}
+	}
+};
+int main(int argc, char* argv[])
+{
+	cacheMem cache;
+	cache.Init();
+	return 0;
+}
