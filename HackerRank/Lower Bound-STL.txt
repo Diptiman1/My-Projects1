@@ -1,0 +1,49 @@
+#include <cmath>
+#include <cstdio>
+#include <vector>
+#include <iostream>
+#include <algorithm>
+using namespace std;
+
+
+int main() {
+	/* Enter your code here. Read input from STDIN. Print output to STDOUT */
+	int N,Q;
+	
+	cin >> N;
+	vector<long int> arr(N);
+	
+	for (int i = 0; i < N; i++)
+		cin >> arr[i];
+
+	cin >> Q;
+	vector <long int> ans(Q);
+	for (int i = 0; i < Q; i++)
+		cin >> ans[i];
+
+	for (int j = 0; j < Q; j++)
+	{
+		for (int i = 0; i < N; i++)
+		{
+			if (arr[i] <= ans[j])
+			{
+				if (ans[j] == arr[i])
+				{	
+					cout << "Yes " << i + 1 <<endl; break;
+				}
+			}
+			else if (arr[i] >  ans[j])
+			{
+				cout << "No " << i + 1 << endl;
+				break;
+			}
+
+
+		}
+
+			
+	}
+
+
+	return 0;
+}

@@ -1,0 +1,96 @@
+#include <bits.h>
+#include<vector>
+#include<iostream>
+#include<string>
+#include<sstream>
+
+using namespace std;
+
+
+string timeConversion(string s) {
+	// Complete this function
+	stringstream ss;
+	string res;
+
+	int size = s.size();
+
+	vector<int>hr(2,0);
+	vector<int>min1(2,0);
+	vector<int>sec(2, 0);
+	vector<char> AMPM(2, 0);
+
+	ss << s[3];
+	ss >> min1[0];
+
+	ss.clear();
+	ss << s[4];
+	ss >> min1[1];
+	ss.clear();
+
+	ss << s[6];
+	ss >> sec[0];
+
+	ss.clear();
+	ss << s[7];
+	ss >> sec[1];
+	ss.clear();
+
+	ss << s[8];
+	ss >> AMPM[0];
+
+	ss.clear();
+	ss << s[9];
+	ss >> AMPM[1];
+	ss.clear();
+	if (AMPM[0] == 'A')
+	{
+		if (s[0] == '1'&&s[1] == '2')
+			hr[0] = hr[1] = 0;
+
+		else
+		{
+			ss << s[0];
+			ss >> hr[0];
+			ss.clear();
+			ss << s[1];
+			ss >> hr[1];
+			ss.clear();
+		}
+	}
+	else
+	{
+		if (s[0] == '1'&&s[1] == '2')
+		{
+			hr[0] = 1; hr[1] = 2;
+		}
+		else if (s[1] == '8') {
+		hr[0] = 2; hr[1] = 0;
+		}
+
+		else
+		{
+			ss << s[0];
+			ss >> hr[0];
+			hr[0] += 1;
+			ss.clear();
+			ss << s[1];
+			ss >> hr[1];
+			hr[1] += 2;
+			ss.clear();
+		}
+	}	
+
+	ss << hr[0] << hr[1]<<":"<<min1[0]<<min1[1]<<":"<<sec[0]<<sec[1];
+	ss >> res;
+
+	return res;
+
+}
+
+int main() {
+	string s;
+	cin >> s;
+	string result = timeConversion(s);
+	cout << result << endl;
+	return 0;
+}

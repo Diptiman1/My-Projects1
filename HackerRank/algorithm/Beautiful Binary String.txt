@@ -1,0 +1,34 @@
+#include <bits.h>
+#include<iostream>
+
+#include<string>
+using namespace std;
+
+int minSteps(int n, string B) {
+	// Complete this function
+	int count = 0;
+	int pos = 0;
+	while (pos < n-1)
+	{
+		if (B[pos] == '0'&&B[pos + 1] == '1'&B[pos + 2] == '0')
+		{
+			B.replace((pos + 2),1, "1");
+			count++;
+		}
+		pos++;
+	}
+
+
+	return count;
+
+}
+
+int main() {
+	int n;
+	cin >> n;
+	string B;
+	cin >> B;
+	int result = minSteps(n, B);
+	cout << result << endl;
+	return 0;
+}

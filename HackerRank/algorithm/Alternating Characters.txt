@@ -1,0 +1,37 @@
+#include <bits.h>
+#include<string>
+#include<iostream>
+
+using namespace std;
+
+int alternatingCharacters(string s) {
+	// Complete this function
+	int size = s.size();
+	int pos = 0;
+	int c = 0;
+	while (pos < size)
+	{
+		if (s[pos] == s[pos + 1])
+		{
+			s.erase(pos + 1, 1);
+			size = s.size();
+			pos--;
+			c++;
+		}
+		pos++;
+	}
+	return c;
+
+}
+
+int main() {
+	int q;
+	cin >> q;
+	for (int a0 = 0; a0 < q; a0++) {
+		string s;
+		cin >> s;
+		int result = alternatingCharacters(s);
+		cout << result << endl;
+	}
+	return 0;
+}

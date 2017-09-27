@@ -1,0 +1,80 @@
+#include <bits.h>
+#include<iostream>
+#include<string>
+
+using namespace std;
+
+int theLoveLetterMystery(string s) {
+	// Complete this function
+	int size = s.size();
+	int midpoint = 0;
+	int prev=0, next=1;
+	int count = 0;
+	while ((midpoint + next) < size)
+	{
+		if (size % 2 == 0)
+		{
+			midpoint = (size / 2) - 1;
+			if (s[midpoint - prev] == s[midpoint + next])
+			{
+				prev++;
+				next++;
+				
+			}
+			else if(s[midpoint - prev] > s[midpoint + next])
+			{
+				count += s[midpoint - prev] - s[midpoint + next];
+				prev++;
+				next++;
+
+			}
+			else if (s[midpoint - prev] < s[midpoint + next])
+			{
+				count += s[midpoint + next] - s[midpoint - prev];
+				prev++;
+				next++;
+			}
+
+
+		}
+		else
+		{
+			midpoint = size / 2;
+			if (s[midpoint - (prev+1)] == s[midpoint + next])
+			{
+				prev++;
+				next++;
+
+			}
+			else if (s[midpoint - (prev + 1)] > s[midpoint + next])
+			{
+				count += s[midpoint - (prev + 1)] - s[midpoint + next];
+				prev++;
+				next++;
+
+			}
+			else if (s[midpoint - (prev + 1)] < s[midpoint + next])
+			{
+				count += s[midpoint + next] - s[midpoint - (prev + 1)];
+				prev++;
+				next++;
+			}
+		}
+	}
+
+	return count;
+
+
+}
+
+int main() {
+	int q;
+	cin >> q;
+	for (int a0 = 0; a0 < q; a0++) {
+		string s;
+		cin >> s;
+		int result = theLoveLetterMystery(s);
+		cout << result << endl;
+	}
+	return 0;
+}

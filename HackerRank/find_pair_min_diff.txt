@@ -1,0 +1,92 @@
+#include <cmath>
+#include <cstdio>
+#include <vector>
+#include <iostream>
+#include <algorithm>
+#include <limits.h>
+using namespace std;
+
+
+vector <long int>  sort_pair(vector <long int> pair)
+{
+	long int temp=0;
+	for (int j = 0; j < pair.size(); j++)
+	{
+		for (int i = j; i < pair.size(); i++)
+		{
+			if (pair[j] > pair[i])
+			{
+				temp = pair[j];
+				pair[j] = pair[i];
+				pair[i] = temp;
+			}
+
+		}
+	}
+
+	return pair;
+}
+
+vector <long int> do_work(vector <long int> val)
+{
+	vector <long int> pair(val.size());
+	long int lvalue1=0, lvalue2 = 0;
+	int diff = INT_MAX;
+	for (int j = 0; j < val.size(); j++)
+	{
+		for (int i = j; i < val.size(); i++)
+		{
+			if (i == j) continue;
+
+			else if (abs(val[j] - val[i]) < diff)
+			{
+				diff = abs(val[j] - val[i]);
+				pair[0] = val[j];
+				pair[1] = val[i];
+
+
+			}
+			else if (abs(val[j] - val[i]) == diff)
+			{
+				diff = abs(val[j] - val[i]);
+				pair.push_back(val[j]);
+				pair.push_back(val[i]);
+
+			}
+
+		}
+
+
+	}
+
+	return (sort_pair(pair));
+}
+
+
+int main() {
+	/* Enter your code here. Read input from STDIN. Print output to STDOUT */
+
+	int n;
+	cin >> n;
+	vector <long int> value(n);
+	vector <long int> pair(n);
+	for (int i = 0; i < n; i++)
+	{
+		cin >> value[i];
+	}
+
+
+
+	pair = do_work(value);
+
+	
+
+	for (int i = 0; i < pair.size(); i++)
+	{
+		if (pair[i] == 0)continue;
+		cout << pair[i] << " ";
+	}
+	cout << endl;
+
+	return 0;
+}

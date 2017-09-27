@@ -1,0 +1,30 @@
+#include<stdio.h>
+#include<ctype.h>
+
+using namespace std;
+
+
+int main() {
+	string s;
+	cin >> s;
+
+	if(islower(s[0])) s[0] = toupper(s[0]);
+	vector<string> s1(1,"");
+	int c=-1;
+	for (int i = 0; i < s.size(); i++)
+	{
+		if (isupper(s[i]))
+		{
+			
+			c++;
+			s1.resize(c + 1);
+			
+		}		
+		s1[c]+= s[i];
+		
+
+	}
+
+	cout << s1.size()<<endl;
+	return 0;
+}
